@@ -7,7 +7,10 @@ import signal
 import sys
 import atexit
 import time
-from datetime import datetime  # AJOUTÉ pour le système de statut
+from datetime import datetime
+from keep_alive import keep_alive
+
+# NOTE: keep_alive() sera appelé plus tard, après la config du bot
 
 # Charger le token
 load_dotenv()
@@ -17,11 +20,8 @@ if not TOKEN:
     print("❌ Token Discord non trouvé !")
     sys.exit(1)
 
-# Protection anti-double instance
-if sys.platform == "win32":
-    LOCK_FILE = os.path.join(os.getenv("TEMP", "."), "discord_bot.lock")
-else:
-    LOCK_FILE = "/tmp/discord_bot.lock"
+# Protection anti-double instance (OPTIMISÉ pour Render)
+LOCK_FILE = "/tmp/discord_bot.lock"
 
 def acquire_lock():
     if os.path.exists(LOCK_FILE):
@@ -29,8 +29,8 @@ def acquire_lock():
         try:
             os.remove(LOCK_FILE)
         except Exception as e:
-            print(f"❌ Impossible de supprimer le lock : {e}")
-            sys.exit(1)
+            print(f"⚠️ Impossible de supprimer le lock : {e}")
+            print("✅ Tentative de démarrage malgré tout (normal sur Render)...")
     
     try:
         os.makedirs(os.path.dirname(LOCK_FILE), exist_ok=True)
@@ -39,8 +39,8 @@ def acquire_lock():
         print(f"🔒 Lock acquis (PID: {os.getpid()})")
         return True
     except Exception as e:
-        print(f"❌ Erreur lock : {e}")
-        sys.exit(1)
+        print(f"⚠️ Erreur lock (ignorée) : {e}")
+        return True  # On continue quand même sur Render
 
 def release_lock():
     try:
@@ -106,7 +106,7 @@ async def on_ready():
     
     bot._ready_fired = True
     
-    # AJOUTÉ : Enregistrer l'heure de démarrage pour le système de statut
+    # Enregistrer l'heure de démarrage pour le système de statut
     bot.uptime = datetime.utcnow()
     
     print("=" * 50)
@@ -115,6 +115,7 @@ async def on_ready():
     print(f"👥 Utilisateurs : {sum(g.member_count for g in bot.guilds)}")
     print(f"🔗 Latence : {round(bot.latency * 1000)}ms")
     print(f"🆔 Process ID : {os.getpid()}")
+    print(f"🌐 Environnement : {'Render' if os.getenv('RENDER') else 'Local'}")
     print("=" * 50)
     
     # Avatar (optionnel)
@@ -127,7 +128,7 @@ async def on_ready():
     except Exception as e:
         print(f"⚠️ Erreur avatar : {e}")
 
-    # AJOUTÉ : Configure le statut "Joue à +help"
+    # Configure le statut "Joue à +help"
     await bot.change_presence(
         activity=discord.Game(name="+help"),
         status=discord.Status.online
@@ -157,7 +158,7 @@ COGS = [
     "cogs.logger",
     "cogs.tickets",
     "cogs.status",
-    "cogs.owner"  # AJOUTÉ : Nouveau cog Owner
+    "cogs.owner"
 ]
 
 # Chargement des cogs
