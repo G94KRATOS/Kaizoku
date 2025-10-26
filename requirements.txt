@@ -1,8 +1,4 @@
 discord.py>=2.0.0
 aiohttp
 python-dotenv
-```
-
-### 2. **`Procfile`** (fichier sans extension)
-```
-worker: python bot.py
+Flask
