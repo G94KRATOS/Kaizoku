@@ -8,9 +8,8 @@ import sys
 import atexit
 import time
 from datetime import datetime
-from keep_alive import keep_alive
 
-# NOTE: keep_alive() sera appelé plus tard, après la config du bot
+# keep_alive n'est plus nécessaire car Gunicorn démarre dans le Procfile
 
 # Charger le token
 load_dotenv()
